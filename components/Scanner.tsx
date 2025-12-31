@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Camera, Image as ImageIcon, X, Loader2, Info } from 'lucide-react';
 
 interface ScannerProps {
@@ -8,8 +8,29 @@ interface ScannerProps {
   isLoading: boolean;
 }
 
+const LOADING_STEPS = [
+  "Optimizing payload...",
+  "Routing node...",
+  "Parsing metadata...",
+  "Calculating FX...",
+  "Finalizing..."
+];
+
 export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [stepIndex, setStepIndex] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading) {
+      setStepIndex(0);
+      // Snappier 1.2s interval to improve perceived performance
+      interval = setInterval(() => {
+        setStepIndex(prev => (prev + 1) % LOADING_STEPS.length);
+      }, 1200);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,9 +49,19 @@ export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading })
       <div className="flex-1 flex flex-col items-center justify-center relative">
         <div className="w-full aspect-[3/4] glass rounded-[2rem] border-2 border-dashed border-sky-500/30 flex flex-col items-center justify-center gap-6 relative group overflow-hidden">
           {isLoading ? (
-            <div className="flex flex-col items-center gap-4 animate-pulse">
-              <Loader2 className="w-12 h-12 text-sky-400 animate-spin" />
-              <p className="text-xs uppercase tracking-[0.2em] font-mono text-sky-400">Synthesizing Data...</p>
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-sky-500/20 blur-xl rounded-full animate-pulse"></div>
+                <Loader2 className="w-12 h-12 text-sky-400 animate-spin relative z-10" />
+              </div>
+              <div className="text-center px-4">
+                <p className="text-[10px] uppercase tracking-[0.2em] font-mono text-sky-400 animate-pulse">
+                  Synthesizing
+                </p>
+                <p className="text-xs text-slate-500 mt-1 h-4 font-medium transition-all duration-300">
+                  {LOADING_STEPS[stepIndex]}
+                </p>
+              </div>
             </div>
           ) : (
             <>
@@ -38,13 +69,12 @@ export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading })
                 <Camera size={40} />
               </div>
               <div className="text-center px-8">
-                <p className="text-sm text-slate-400 mb-2">Align foreign merchant QR or receipt within this frame.</p>
-                <p className="text-[10px] font-mono text-slate-600 uppercase">Support: NIPL & Global Partners</p>
+                <p className="text-sm text-slate-400 mb-2">Align receipt or QR in frame</p>
+                <p className="text-[10px] font-mono text-slate-600 uppercase">ISO-20022 Verified</p>
               </div>
             </>
           )}
           
-          {/* Scanning animation effect */}
           {!isLoading && <div className="absolute top-0 left-0 w-full h-1 bg-sky-500/40 shadow-[0_0_15px_rgba(56,189,248,0.5)] animate-[scan_3s_ease-in-out_infinite]"></div>}
         </div>
       </div>
@@ -63,13 +93,13 @@ export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading })
           className="w-full py-4 bg-white text-slate-950 font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors disabled:opacity-50"
         >
           <ImageIcon size={20} />
-          Choose from Gallery
+          Gallery Upload
         </button>
 
         <div className="glass-dark rounded-xl p-4 flex gap-3 items-start">
           <Info size={16} className="text-sky-400 mt-0.5" />
           <p className="text-[10px] leading-relaxed text-slate-400">
-            System automatically detects currency, locale, and taxes using ELITE GPT vision. Local conversions applied at mid-market rates.
+            Real-time FX synthesis active. Optimized for Vercel edge delivery.
           </p>
         </div>
       </div>
