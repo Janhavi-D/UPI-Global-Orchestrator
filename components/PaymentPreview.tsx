@@ -1,22 +1,34 @@
 
 import React from 'react';
-import { ShieldCheck, Globe, CreditCard, Info } from 'lucide-react';
+import { ShieldCheck, Globe, CreditCard, Info, AlertTriangle } from 'lucide-react';
 import { PaymentData } from '../types';
 import { BRIDGE_FEE_PCT, GST_ON_FEE_PCT, FX_RATES } from '../constants';
 
 interface PaymentPreviewProps {
-  data: PaymentData;
+  data: PaymentData | null;
   onProceed: () => void;
   onCancel: () => void;
 }
 
 export const PaymentPreview: React.FC<PaymentPreviewProps> = ({ data, onProceed, onCancel }) => {
-  const fx = FX_RATES[data?.originalCurrency] || FX_RATES['USD'];
+  if (!data) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center h-screen text-center">
+        <AlertTriangle className="text-amber-500 mb-4" size={48} />
+        <h2 className="text-xl font-bold">Data Mismatch</h2>
+        <p className="text-slate-400 text-sm mt-2">The payment context was lost. Please retry scanning.</p>
+        <button onClick={onCancel} className="mt-6 px-6 py-2 bg-white/10 rounded-full text-xs font-bold uppercase tracking-widest">Return to Base</button>
+      </div>
+    );
+  }
+
+  const fx = FX_RATES[data.originalCurrency] || FX_RATES['USD'];
   const currencySymbol = fx?.symbol || '$';
   
-  const bridgeFee = (data?.inrAmount || 0) * BRIDGE_FEE_PCT;
+  const baseInr = data.inrAmount || 0;
+  const bridgeFee = baseInr * BRIDGE_FEE_PCT;
   const gst = bridgeFee * GST_ON_FEE_PCT;
-  const finalInr = (data?.inrAmount || 0) + bridgeFee + gst;
+  const finalInr = baseInr + bridgeFee + gst;
 
   return (
     <div className="flex flex-col h-screen p-6 animate-in slide-in-from-right-10 duration-500 overflow-y-auto pb-20">
@@ -26,14 +38,14 @@ export const PaymentPreview: React.FC<PaymentPreviewProps> = ({ data, onProceed,
       <div className="glass rounded-[2rem] p-6 mb-6 flex flex-col gap-4">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-2xl font-bold text-white">{data?.merchantName}</h3>
+            <h3 className="text-2xl font-bold text-white truncate max-w-[200px]">{data.merchantName || 'Elite Merchant'}</h3>
             <p className="text-xs text-slate-400 flex items-center gap-1">
               <Globe size={12} className="text-sky-400" />
-              {data?.country} • {data?.isNIPL ? 'Native UPI Path' : 'Universal Bridge'}
+              {data.country || 'Global Node'} • {data.isNIPL ? 'Native UPI Path' : 'Universal Bridge'}
             </p>
           </div>
           <div className="px-2 py-1 bg-sky-500/10 border border-sky-500/30 rounded text-[10px] font-bold text-sky-400 uppercase">
-            Active
+            Validated
           </div>
         </div>
 
@@ -43,11 +55,11 @@ export const PaymentPreview: React.FC<PaymentPreviewProps> = ({ data, onProceed,
           <div>
             <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Total Bill</p>
             <p className="text-3xl font-mono font-bold text-white">
-              {currencySymbol}{data?.originalAmount?.toFixed(2)}
+              {currencySymbol}{(data.originalAmount || 0).toFixed(2)}
             </p>
           </div>
           <p className="text-xs text-slate-400 mb-1">
-            ≈ ₹{data?.inrAmount?.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            ≈ ₹{baseInr.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </p>
         </div>
       </div>
@@ -84,24 +96,10 @@ export const PaymentPreview: React.FC<PaymentPreviewProps> = ({ data, onProceed,
           <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex gap-3 items-center">
              <Info size={14} className="text-emerald-400 shrink-0" />
              <p className="text-[10px] text-emerald-400/80 leading-tight">
-                You're saving ~₹{(finalInr * 0.035).toFixed(2)} vs standard 3.5% bank international markups.
+                You're saving ~₹{(finalInr * 0.035).toFixed(2)} vs standard bank international markups.
              </p>
           </div>
         </div>
-      </div>
-
-      {/* Payment Source */}
-      <div className="glass-dark rounded-2xl p-4 flex items-center justify-between mb-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
-            <CreditCard size={20} />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-white">HDFC Bank • • 910</p>
-            <p className="text-[10px] text-slate-500 uppercase">Primary Liquidity Node</p>
-          </div>
-        </div>
-        <button className="text-[10px] text-sky-400 font-bold uppercase">Change</button>
       </div>
 
       {/* Actions */}
