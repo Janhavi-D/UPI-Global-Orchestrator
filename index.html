@@ -8,63 +8,94 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-deep: #020617;
+            --accent-primary: #38bdf8;
+            --accent-secondary: #8b5cf6;
+            --accent-success: #10b981;
+        }
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #020617;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-deep);
             color: #f8fafc;
             margin: 0;
             padding: 0;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
         .font-mono {
             font-family: 'JetBrains Mono', monospace;
         }
         .glass {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
         .glass-dark {
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.04);
         }
-        ::-webkit-scrollbar {
-            width: 4px;
+        .mesh-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.02) 0%, transparent 50%);
         }
-        ::-webkit-scrollbar-track {
-            background: transparent;
+        .shimmer {
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite linear;
         }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        
+        /* Premium button hover effects */
+        .btn-premium {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-premium:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.4);
+        }
+        .btn-premium:active {
+            transform: scale(0.98);
         }
     </style>
     
     <script>
       window.onerror = function(message, source, lineno, colno, error) {
-        console.error("Global Handshake Failure: ", message, "\nOrigin: ", source, ":", lineno, ":", colno, "\nStack: ", error?.stack);
-      };
-      window.onunhandledrejection = function(event) {
-        console.error("Critical Rejection Node: ", event.reason);
+        console.error("Global catch:", {message, source, lineno, colno, error: error?.stack});
       };
     </script>
 
-    <!-- ES Module Shims for robust importmap support -->
     <script async src="https://esm.sh/es-module-shims@1.10.0"></script>
-
     <script type="importmap">
     {
       "imports": {
         "react": "https://esm.sh/react@19.0.0",
+        "react/": "https://esm.sh/react@19.0.0/",
         "react-dom": "https://esm.sh/react-dom@19.0.0",
+        "react-dom/": "https://esm.sh/react-dom@19.0.0/",
         "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
         "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
-        "react/": "https://esm.sh/react@19.0.0/",
-        "react-dom/": "https://esm.sh/react-dom@19.0.0/",
         "@google/genai": "https://esm.sh/@google/genai@1.34.0",
         "lucide-react": "https://esm.sh/lucide-react@0.475.0?external=react",
         "recharts": "https://esm.sh/recharts@2.15.1?external=react,react-dom"
@@ -73,7 +104,8 @@
     </script>
 </head>
 <body>
+    <div class="mesh-gradient"></div>
     <div id="root"></div>
-    <script type="module" src="./index.tsx" crossorigin></script>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>
