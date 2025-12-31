@@ -45,7 +45,7 @@
         }
     </style>
     
-    <!-- ES Module Shims for importmap support -->
+    <!-- ES Module Shims for robust importmap support -->
     <script async src="https://esm.sh/es-module-shims@1.10.0"></script>
 
     <script type="importmap">
@@ -66,7 +66,6 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- The following script tag ensures index.tsx is treated as the entry module -->
     <script type="module" src="./index.tsx"></script>
 </body>
 </html>
