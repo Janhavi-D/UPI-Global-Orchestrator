@@ -2,19 +2,22 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { FX_RATES, NIPL_COUNTRIES } from "./constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
 export const parseReceipt = async (base64Image: string) => {
+  // Fresh instance for every call ensures reliability and latest API key
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: {
       parts: [
         { inlineData: { data: base64Image, mimeType: 'image/jpeg' } },
-        { text: "Extract merchant name, country, currency (ISO code), subtotal, tax, and total amount from this receipt. If information is missing, infer logically. Output strictly JSON." }
+        { text: "OCR this receipt and return JSON: {merchantName, country, currency (ISO), subtotal, tax, total}. Be concise." }
       ]
     },
     config: {
       responseMimeType: "application/json",
+      // Disable thinking to significantly reduce latency for extraction tasks
+      thinkingConfig: { thinkingBudget: 0 },
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -32,9 +35,8 @@ export const parseReceipt = async (base64Image: string) => {
 
   const data = JSON.parse(response.text || '{}');
   
-  // Math Shield: Extract Subtotal + Tax. If Sum != Scanned_Total, override and use Sum.
   const calculatedTotal = (data?.subtotal || 0) + (data?.tax || 0);
-  const finalTotal = calculatedTotal > 0 && calculatedTotal !== data?.total ? calculatedTotal : (data?.total || 0);
+  const finalTotal = calculatedTotal > 0 && Math.abs(calculatedTotal - data?.total) > 0.01 ? calculatedTotal : (data?.total || 0);
   
   const fx = FX_RATES[data?.currency || 'USD'] || FX_RATES['USD'];
   const isNIPL = NIPL_COUNTRIES.some(c => data?.country?.toLowerCase()?.includes(c.toLowerCase()));
