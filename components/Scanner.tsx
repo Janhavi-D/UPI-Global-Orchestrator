@@ -1,11 +1,11 @@
-
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, Info } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, Info, AlertCircle, RefreshCcw } from 'lucide-react';
 
 interface ScannerProps {
   onScan: (file: File) => void;
   onCancel: () => void;
   isLoading: boolean;
+  error?: string | null;
 }
 
 const LOADING_STEPS = [
@@ -16,25 +16,38 @@ const LOADING_STEPS = [
   "Finalizing..."
 ];
 
-export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading }) => {
+export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading, error }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [stepIndex, setStepIndex] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
+    let warningTimeout: any;
+
     if (isLoading) {
       setStepIndex(0);
-      // Snappier 1.2s interval to improve perceived performance
+      setShowWarning(false);
       interval = setInterval(() => {
         setStepIndex(prev => (prev + 1) % LOADING_STEPS.length);
       }, 1200);
+
+      warningTimeout = setTimeout(() => setShowWarning(true), 12000);
     }
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      clearTimeout(warningTimeout);
+    };
   }, [isLoading]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) onScan(file);
+    if (file) {
+      onScan(file);
+      // Reset input so scanning the same file again triggers change
+      e.target.value = '';
+    }
   };
 
   return (
@@ -47,7 +60,10 @@ export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading })
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center relative">
-        <div className="w-full aspect-[3/4] glass rounded-[2rem] border-2 border-dashed border-sky-500/30 flex flex-col items-center justify-center gap-6 relative group overflow-hidden">
+        <div 
+          onClick={() => !isLoading && fileInputRef.current?.click()}
+          className={`w-full aspect-[3/4] glass rounded-[2rem] border-2 border-dashed cursor-pointer transition-all duration-500 flex flex-col items-center justify-center gap-6 relative group overflow-hidden ${error ? 'border-red-500/50 bg-red-500/5' : 'border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/5'}`}
+        >
           {isLoading ? (
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
@@ -61,6 +77,31 @@ export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading })
                 <p className="text-xs text-slate-500 mt-1 h-4 font-medium transition-all duration-300">
                   {LOADING_STEPS[stepIndex]}
                 </p>
+                {showWarning && (
+                  <p className="text-[9px] text-violet-400 mt-4 animate-bounce">
+                    Network latency detected. Holding connection...
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center gap-4 px-6 text-center animate-in zoom-in duration-300">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                <AlertCircle size={32} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-red-400">Analysis Halted</p>
+                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                  {error.includes("API_KEY") ? "Cloud configuration missing. Check environment variables." : error}
+                </p>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                  className="px-6 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all"
+                >
+                  <RefreshCcw size={12} /> Retry
+                </button>
               </div>
             </div>
           ) : (
@@ -69,13 +110,13 @@ export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading })
                 <Camera size={40} />
               </div>
               <div className="text-center px-8">
-                <p className="text-sm text-slate-400 mb-2">Align receipt or QR in frame</p>
-                <p className="text-[10px] font-mono text-slate-600 uppercase">ISO-20022 Verified</p>
+                <p className="text-sm text-slate-400 mb-2">Capture QR or Receipt</p>
+                <p className="text-[10px] font-mono text-slate-600 uppercase">Universal Recognition Active</p>
               </div>
             </>
           )}
           
-          {!isLoading && <div className="absolute top-0 left-0 w-full h-1 bg-sky-500/40 shadow-[0_0_15px_rgba(56,189,248,0.5)] animate-[scan_3s_ease-in-out_infinite]"></div>}
+          {!isLoading && !error && <div className="absolute top-0 left-0 w-full h-1 bg-sky-500/40 shadow-[0_0_15px_rgba(56,189,248,0.5)] animate-[scan_3s_ease-in-out_infinite]"></div>}
         </div>
       </div>
 
@@ -83,6 +124,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading })
         <input 
           type="file" 
           accept="image/*" 
+          capture="environment"
           ref={fileInputRef} 
           className="hidden" 
           onChange={handleFileChange}
@@ -90,16 +132,16 @@ export const Scanner: React.FC<ScannerProps> = ({ onScan, onCancel, isLoading })
         <button 
           onClick={() => fileInputRef.current?.click()}
           disabled={isLoading}
-          className="w-full py-4 bg-white text-slate-950 font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors disabled:opacity-50"
+          className="w-full py-4 bg-white text-slate-950 font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors disabled:opacity-50 shadow-xl"
         >
-          <ImageIcon size={20} />
-          Gallery Upload
+          <Camera size={20} />
+          Initialize Camera
         </button>
 
         <div className="glass-dark rounded-xl p-4 flex gap-3 items-start">
           <Info size={16} className="text-sky-400 mt-0.5" />
           <p className="text-[10px] leading-relaxed text-slate-400">
-            Real-time FX synthesis active. Optimized for Vercel edge delivery.
+            Scanning node utilizes Gemini 3 Vision. Data is processed via transient edge tunnel. No receipt data is persisted on local storage.
           </p>
         </div>
       </div>
